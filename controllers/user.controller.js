@@ -1,4 +1,14 @@
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+// Models
 const { User } = require('../models/user.model');
+
+// Utils 
+const { catchAsync } = require('../utils/catchAsync');
+
+dotenv.config({ path: './config.env' });
 
 const getAllUsers = async (req, res) => {
     try {
@@ -74,4 +84,26 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser };
+const login = catchAsync(async (req, res) => {
+    const { email, password } = req.body;
+    // Validate that the user exists with the given email
+    const user = await User.findOne({
+        where: { email, status: 'active' },
+    });
+    // Compare password with db
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        return next(new AppError('Invalid credentials', 400));
+    }
+    // Generate JWT
+    const token = await jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN
+    });
+    user.password = undefined;
+    res.status(200).json({ token, user });
+});
+
+const checkToken = catchAsync(async (req, res, next) => {
+    res.status(200).json({ user: req.sessionUser });
+});
+
+module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser, login, checkToken };

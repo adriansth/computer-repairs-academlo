@@ -1,17 +1,51 @@
-const express = require('express');
+const express = require("express");
+const { body } = require("express-validator");
 
-const { getAllUsers, getUserById, createUser, updateUser, deleteUser } = require('../controllers/user.controller');
+// Middlewares
+const {
+  userExists,
+  protectToken,
+  protectAdmin,
+  protectAccountOwner,
+} = require("../middlewares/users.middlewares");
+const {
+  createUserValidations,
+  checkValidations,
+} = require("../middlewares/validations.middlewares");
+
+// Controllers
+const {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  login,
+  checkToken,
+} = require("../controllers/user.controller");
 
 const router = express.Router();
 
-router.get('/', getAllUsers);
+router.post(
+    '/',
+    createUserValidations,
+    checkValidations,
+    createUser
+  );
 
-router.post('/', createUser);
+router.post('/login', login);
 
-router.get('/:id', getUserById);
+// Apply protect token middleware
+router.use(protectToken);
 
-router.patch('/:id', updateUser);
+router.get("/", protectAdmin, getAllUsers);
 
-router.delete('/:id', deleteUser);
+router.get("/check-token", checkToken);
+
+router
+    .route("/:id")
+    .get(protectAdmin, userExists, getUserById)
+    .patch(userExists, protectAccountOwner, updateUser)
+    .delete(userExists, protectAccountOwner, deleteUser);
 
 module.exports = { userRouter: router };
