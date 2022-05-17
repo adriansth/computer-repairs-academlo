@@ -1,17 +1,25 @@
 const express = require('express');
 
-const { getAllRepairs, getRepairById, createRepair, repairCompleted, repairCancelled } = require('../controllers/repair.controller');
+const {
+  createRepair,
+  repairCompleted,
+  repairCancelled,
+  getPendingRepairs,
+  getPendingRepairById
+} = require('../controllers/repair.controller');
+const { protectAdmin } = require('../middlewares/users.middlewares');
 
 const router = express.Router();
 
-router.get('/', getAllRepairs);
+router
+  .route('/')
+  .get('/', getPendingRepairs, protectAdmin)
+  .post('/', createRepair);
 
-router.post('/', createRepair);
-
-router.get('/:id', getRepairById);
-
-router.patch('/:id', repairCompleted);
-
-router.delete('/:id', repairCancelled);
+router
+  .route('/:id')
+  .get('/:id', getPendingRepairById, protectAdmin)
+  .patch('/:id', repairCompleted, protectAdmin)
+  .delete('/:id', repairCancelled, protectAdmin);
 
 module.exports = { repairRouter: router };
